@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SatuJob: prototype operasional & costing logistik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F0;--surface:#FFFFFF;--surface-2:#F5F8F7;--ink:#14262B;--muted:#5A6D72;--line:#D5DEDC;
+  --teal:#0E6B6F;--teal-ink:#FFFFFF;--teal-soft:#DCEDEC;
+  --signal:#F2B705;--signal-soft:#FFF3C7;--signal-ink:#5B4300;
+  --ok:#23784A;--ok-soft:#DDF1E5;--bad:#B4362C;--bad-soft:#F8E1DE;--info:#2D5DA8;--info-soft:#E0E9F7;
+  --scan:rgba(14,107,111,.22);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E191C;--surface:#152429;--surface-2:#1A2C32;--ink:#E2ECEA;--muted:#93A7AB;--line:#29404A;
+    --teal:#4DB3B4;--teal-ink:#06292B;--teal-soft:#16393D;
+    --signal:#F2C230;--signal-soft:#3A3212;--signal-ink:#F6DA80;
+    --ok:#5CC48A;--ok-soft:#173528;--bad:#EF7E72;--bad-soft:#3D1F1C;--info:#86A9E8;--info-soft:#1C2B45;
+    --scan:rgba(77,179,180,.25);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E191C;--surface:#152429;--surface-2:#1A2C32;--ink:#E2ECEA;--muted:#93A7AB;--line:#29404A;
+  --teal:#4DB3B4;--teal-ink:#06292B;--teal-soft:#16393D;
+  --signal:#F2C230;--signal-soft:#3A3212;--signal-ink:#F6DA80;
+  --ok:#5CC48A;--ok-soft:#173528;--bad:#EF7E72;--bad-soft:#3D1F1C;--info:#86A9E8;--info-soft:#1C2B45;
+  --scan:rgba(77,179,180,.25);
+  color-scheme:dark;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+img,svg{max-width:100%}
+h1,h2,h3{margin:0;line-height:1.25}
+h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:16px;font-weight:700}
+h3{font-size:14px;font-weight:600}
+p{margin:0}
+a{color:var(--teal)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* layout */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100%}
+.side{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:20px;padding:22px 16px;background:var(--surface);border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.brand b{font-size:19px;letter-spacing:-.02em}
+.brand span{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.role{display:flex;flex-direction:column;gap:6px;padding:0 6px}
+.role label{font-size:13px;color:var(--muted)}
+select,input[type=text]{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:6px;text-decoration:none;color:var(--ink);font-weight:500}
+.nav a:hover{background:var(--surface-2)}
+.nav a.on{background:var(--teal-soft);color:var(--teal);font-weight:700}
+.count{min-width:22px;padding:0 7px;border-radius:999px;background:var(--signal);color:#3A2B00;font-size:12px;font-weight:700;text-align:center}
+.side-foot{margin-top:auto;padding:12px 6px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.main{padding:24px 32px 56px;min-width:0}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px}
+.head p{color:var(--muted);margin-top:4px;max-width:70ch}
+.badge-proto{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--signal-soft);color:var(--signal-ink);border:1px solid var(--signal)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.pad{padding:18px 20px}
+.stack{display:flex;flex-direction:column;gap:18px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* buttons & pills */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:var(--teal-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.p-grey{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.p-proc{background:var(--teal-soft);color:var(--teal)}
+.p-sig{background:var(--signal-soft);color:var(--signal-ink)}
+.p-info{background:var(--info-soft);color:var(--info)}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+/* tables */
+.tw{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:13px;font-weight:600;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .r{text-align:right;white-space:nowrap}
+.tbl tr.click{cursor:pointer}
+.tbl tr.click:hover td{background:var(--surface-2)}
+.tbl tfoot td{font-weight:700;border-top:1px solid var(--line)}
+.neg{color:var(--bad);font-weight:600}
+.pos{color:var(--ok);font-weight:600}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpi{padding:16px 20px;border-left:1px solid var(--line)}
+.kpi:first-child{border-left:0}
+.kpi .n{display:block;font-size:28px;font-weight:700;letter-spacing:-.02em}
+.kpi .l{font-size:13px;color:var(--muted)}
+
+/* action list */
+.todo{list-style:none;margin:0;padding:0}
+.todo li{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.todo li:last-child{border-bottom:0}
+.todo .when{flex:0 0 64px;font-size:13px;font-weight:700}
+.todo .when.hot{color:var(--bad)}
+.linkbtn{background:none;border:0;padding:0;color:var(--teal);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+/* charts */
+.chart .grid{stroke:var(--line)}
+.chart .ln{stroke:var(--teal);fill:none;stroke-width:2.5}
+.chart text{fill:var(--muted);font-size:11px;font-family:inherit}
+.chart .val{fill:var(--ink);font-weight:600}
+.chart .pt{fill:var(--surface);stroke:var(--teal);stroke-width:2}
+.chart .last{fill:var(--signal);stroke:var(--signal)}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar .t{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:4px}
+.bar .track{height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar .fill{height:100%;background:var(--teal);border-radius:999px}
+
+.ai{border-left:4px solid var(--teal)}
+.ai-text{display:flex;flex-direction:column;gap:10px;margin-top:12px;max-width:78ch}
+.ai-note{font-size:12px;color:var(--muted);margin-top:12px}
+
+/* job detail */
+.back{margin-bottom:14px}
+.plate{display:inline-flex;align-items:center;border-left:7px solid var(--signal);background:var(--surface);padding:4px 14px 4px 12px;font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:28px;font-weight:600;letter-spacing:.02em;line-height:1.2;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 6px 6px 0}
+.plate.sm{font-size:15px;border-left-width:5px;padding:2px 8px}
+.job-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:flex-start}
+.job-top .meta{margin-top:10px;color:var(--muted)}
+.job-top .meta strong{color:var(--ink)}
+.route{display:flex;overflow-x:auto;padding:22px 4px 6px;margin-top:4px}
+.stop{flex:1 0 92px;position:relative;text-align:center;font-size:12px;color:var(--muted);padding-top:22px}
+.stop::before{content:"";position:absolute;top:6px;left:-50%;width:100%;height:3px;background:var(--line)}
+.stop:first-child::before{display:none}
+.stop i{position:absolute;top:0;left:50%;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;background:var(--surface);border:3px solid var(--line);z-index:1}
+.stop.done{color:var(--ink)}
+.stop.done::before,.stop.cur::before{background:var(--teal)}
+.stop.done i{background:var(--teal);border-color:var(--teal)}
+.stop.cur{color:var(--ink);font-weight:700}
+.stop.cur i{width:21px;height:21px;margin-left:-10.5px;top:-3px;background:var(--signal);border-color:var(--ink)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin:18px 0 18px}
+.tab{padding:10px 14px;border:0;background:none;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tab.on{color:var(--ink);border-bottom-color:var(--teal)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 20px}
+.facts dt{font-size:13px;color:var(--muted)}
+.facts dd{margin:2px 0 0;font-weight:600}
+.checks{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.checks li{display:flex;gap:8px;align-items:flex-start}
+.mk{flex:0 0 20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.mk.y{background:var(--ok-soft);color:var(--ok)}
+.mk.n{background:var(--bad-soft);color:var(--bad)}
+.progress{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:8px}
+.progress span{display:block;height:100%;background:var(--teal)}
+.inline-form{display:flex;gap:6px}
+.inline-form input{width:130px;padding:5px 8px}
+.history{list-style:none;margin:0;padding:0}
+.history li{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.history li:last-child{border-bottom:0}
+.sumbox{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+.sumbox div{background:var(--surface-2);border-radius:8px;padding:12px 14px}
+.sumbox span{display:block;font-size:13px;color:var(--muted)}
+.sumbox b{font-size:17px}
+
+/* board */
+.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:14px;overflow-x:auto;padding-bottom:6px}
+.col{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:200px}
+.col-h{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 6px}
+.col-h b{font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;text-align:left;width:100%}
+.card:hover{border-color:var(--teal)}
+.card .c-r{font-size:13px;color:var(--muted);margin-top:6px}
+.card ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.card li.b{color:var(--bad)}
+.card li.g{color:var(--ok);font-weight:600}
+.empty{font-size:13px;color:var(--muted);padding:12px 4px}
+
+/* invoice ai */
+.inv{display:grid;grid-template-columns:250px minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.inbox{display:flex;flex-direction:column;gap:8px}
+.inbox button{text-align:left;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.inbox button.on{border-color:var(--teal);box-shadow:inset 3px 0 0 var(--teal)}
+.inbox .v{font-weight:600;font-size:14px}
+.paper{position:relative;background:#FFFFFF;color:#1E2A2E;border:1px solid var(--line);border-radius:4px;padding:22px 22px 26px;font-size:13px;overflow:hidden}
+.paper .ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1E2A2E;padding-bottom:10px;margin-bottom:12px}
+.paper .ph b{font-size:15px}
+.paper .ph span{font-weight:700;letter-spacing:.08em}
+.paper table{width:100%;border-collapse:collapse;margin-top:12px}
+.paper td{padding:6px 0;border-bottom:1px dashed #C9D2D0;vertical-align:top}
+.paper td.r{text-align:right;white-space:nowrap;padding-left:12px}
+.paper .pt{text-align:right;font-weight:700;font-size:15px;margin-top:12px}
+.paper.scanning::after{content:"";position:absolute;left:0;right:0;top:-60px;height:60px;background:linear-gradient(to bottom,transparent,var(--scan));animation:scan 1.4s linear infinite}
+@keyframes scan{to{top:100%}}
+@media (prefers-reduced-motion:reduce){.paper.scanning::after{animation:none;top:0;height:100%;opacity:.5}}
+.fields{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;font-size:14px;margin-top:12px;align-items:baseline}
+.fields dt{color:var(--muted)}
+.fields dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.conf{font-size:12px;color:var(--ok);font-weight:600}
+.match{margin-top:16px;padding:14px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line)}
+.verdict{margin-top:12px;padding:10px 12px;border-radius:6px;font-size:14px;font-weight:600}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)}
+.verdict.warn{background:var(--signal-soft);color:var(--signal-ink)}
+.lbl{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+
+.note{font-size:13px;color:var(--muted);padding:10px 12px;border:1px dashed var(--line);border-radius:6px}
+
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;max-width:min(560px,calc(100% - 32px));padding:12px 16px;border-radius:8px;background:var(--ink);color:var(--surface);font-size:14px;font-weight:500;transition:opacity .2s,transform .2s;z-index:50}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.bad{background:var(--bad);color:#fff}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+
+@media (max-width:1100px){
+  .inv{grid-template-columns:1fr 1fr}
+  .inbox{grid-column:1/-1;flex-direction:row;overflow-x:auto}
+  .inbox button{flex:0 0 220px}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi:nth-child(4){border-left:0}
+  .kpi:nth-child(n+4){border-top:1px solid var(--line)}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;padding:14px 16px;gap:12px;border-right:0;border-bottom:1px solid var(--line)}
+  .role{flex-direction:row;align-items:center;padding:0}
+  .role select{flex:1}
+  .nav{flex-direction:row;overflow-x:auto;gap:4px}
+  .nav a{white-space:nowrap}
+  .side-foot{display:none}
+  .main{padding:18px 16px 48px}
+  .grid2,.inv{grid-template-columns:1fr}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sumbox{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi{border-left:0!important;border-top:1px solid var(--line)}
+  .kpi:nth-child(-n+2){border-top:0}
+  .kpi:nth-child(even){border-left:1px solid var(--line)!important}
+  .plate{font-size:22px}
+  h1{font-size:21px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg width="34" height="26" viewBox="0 0 34 26" aria-hidden="true"><rect x="1" y="1" width="32" height="24" rx="2" fill="var(--teal)"/><g stroke="var(--surface)" stroke-width="1.6" opacity=".55"><line x1="8" y1="5" x2="8" y2="21"/><line x1="14" y1="5" x2="14" y2="21"/><line x1="20" y1="5" x2="20" y2="21"/><line x1="26" y1="5" x2="26" y2="21"/></g><rect x="1" y="1" width="7" height="7" fill="var(--signal)"/></svg>
+      <div><b>SatuJob</b><span>Operasional & costing</span></div>
+    </div>
+    <div class="role">
+      <label for="roleSel">Lihat sebagai</label>
+      <select id="roleSel">
+        <option value="Manajemen">Manajemen</option>
+        <option value="Finance">Finance</option>
+        <option value="Operasional">Operasional</option>
+        <option value="Dokumen">Dokumen</option>
+      </select>
+    </div>
+    <nav class="nav" id="nav" aria-label="Menu utama"></nav>
+    <div class="side-foot">Prototype untuk diskusi. Semua data adalah contoh.<br><br>Disiapkan oleh Fikri<br><a href="https://profile.heyfik.net" target="_blank" rel="noopener">profile.heyfik.net</a></div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const STATUSES=['Quotation','Order','Booking','Trucking & Depot','Dokumen','Siap Berangkat','Berangkat','Siap Tagih','Ditutup'];
+const TOL=0.05;
+const TODAY=new Date('2026-10-25T00:00:00');
+const MONTHS=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const USER={Manajemen:'Hendra',Finance:'Sari',Operasional:'Rina',Dokumen:'Dimas'};
+const ROLES={
+  Manajemen:{nav:['dashboard','jobs','board','invoice','approval'],costs:true,approve:true,ops:true,docs:true,fin:true},
+  Finance:{nav:['dashboard','jobs','board','invoice','approval'],costs:true,approve:false,ops:false,docs:false,fin:true},
+  Operasional:{nav:['jobs','board'],costs:false,approve:false,ops:true,docs:false,fin:false},
+  Dokumen:{nav:['jobs','board'],costs:false,approve:false,ops:false,docs:true,fin:false}
+};
+const NAV={dashboard:'Dashboard',jobs:'Job',board:'Board kesiapan',invoice:'Baca invoice vendor',approval:'Approval variance'};
+const HEADS={
+  dashboard:['Dashboard','Ringkasan job aktif, hal yang perlu ditindaklanjuti, dan tren biaya.'],
+  jobs:['Job','Semua order, booking, dokumen, dan biaya terhubung ke satu nomor job.'],
+  board:['Board kesiapan','Status siap berangkat dan siap tagih dihitung otomatis dari aturan bisnis, lengkap dengan kekurangannya.'],
+  invoice:['Baca invoice vendor','AI membaca invoice, mencocokkannya ke job dan pos biaya, lalu user mengonfirmasi sebelum disimpan.'],
+  approval:['Approval variance','Biaya aktual yang melebihi rencana lebih dari 5% menunggu keputusan Manajemen.']
+};
+
+const fmt=new Intl.NumberFormat('id-ID');
+const rp=n=>n==null?'–':'Rp '+fmt.format(Math.round(n));
+const pc=n=>(n>0?'+':'')+n.toFixed(1).replace('.',',')+'%';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fd(s){if(!s)return '–';const d=new Date(s+'T00:00:00');return d.getDate()+' '+MONTHS[d.getMonth()];}
+function daysLeft(s){return Math.round((new Date(s+'T00:00:00')-TODAY)/86400000);}
+function nowStr(){const n=new Date();return TODAY.getDate()+' '+MONTHS[TODAY.getMonth()]+', '+String(n.getHours()).padStart(2,'0')+'.'+String(n.getMinutes()).padStart(2,'0');}
+function C(type,vendor,planned,actual,rebill,approval,note){return {type,vendor,planned,actual,rebill:!!rebill,approval:approval||null,note:note||''};}
+function D(name,ok,deadline){return {name,status:ok?'lengkap':'belum',deadline};}
+function H(t,who,text){return {t,who,text};}
+
+const SOL='Samudra Ocean Line';
+const JOBS=[
+ {no:'JOB-2610-0011',cust:'PT Kopi Bukit Barisan',kind:'Ekspor FCL',pol:'Belawan',pod:'Busan',commodity:'Kopi arabika',units:'1 × 20GP',status:8,revenue:26900000,
+  booking:{line:SOL,vessel:'KM Bahari Utama',voyage:'118N',no:'SOL-BLW-26-4471',confirmed:true,closing:'2026-10-06',etd:'2026-10-08',eta:'2026-10-21'},
+  containers:[{no:'SOLU2104476',size:'20GP',seal:'SOL-771204',truck:'BK 8812 XL',gate:true}],
+  docs:[D('Packing list',1,'2026-10-05'),D('Commercial invoice',1,'2026-10-05'),D('Shipping instruction',1,'2026-10-05'),D('PEB',1,'2026-10-06'),D('Certificate of Origin',1,'2026-10-06')],
+  costs:[C('Ocean freight',SOL,14800000,14800000,1),C('THC muat','Terminal Belawan Jaya',2450000,2450000,1),C('Trucking','PT Angkut Sumut Raya',3200000,3350000),C('LOLO depot','Depot Belawan Prima',650000,650000),C('Dokumen & PEB','PPJK Mitra Pabean',1500000,1500000)],
+  history:[H('20 Okt, 16.05','Finance (Sari)','Job ditutup setelah invoice terbit di software akuntansi'),H('14 Okt, 10.21','Finance (Sari)','Status diubah ke Siap Tagih'),H('8 Okt, 19.30','Operasional (Rina)','Status diubah ke Berangkat')]},
+ {no:'JOB-2610-0013',cust:'CV Rotan Nusantara Jaya',kind:'Ekspor FCL',pol:'Belawan',pod:'Rotterdam',commodity:'Mebel rotan',units:'1 × 40HC',status:7,revenue:58400000,
+  booking:{line:SOL,vessel:'KM Selat Malaka',voyage:'207W',no:'SOL-BLW-26-4502',confirmed:true,closing:'2026-10-13',etd:'2026-10-15',eta:'2026-11-19'},
+  containers:[{no:'SOLU4410982',size:'40HC',seal:'SOL-771355',truck:'BK 9031 AB',gate:true}],
+  docs:[D('Packing list',1,'2026-10-11'),D('Commercial invoice',1,'2026-10-11'),D('Shipping instruction',1,'2026-10-11'),D('PEB',1,'2026-10-12'),D('Sertifikat fumigasi',1,'2026-10-12'),D('Certificate of Origin',1,'2026-10-12')],
+  costs:[C('Ocean freight',SOL,38500000,38500000,1),C('THC muat','Terminal Belawan Jaya',3900000,3900000,1),C('Trucking','PT Angkut Sumut Raya',4100000,4600000,0,'disetujui','Tambahan biaya menunggu muat 1 hari di gudang pelanggan'),C('Fumigasi','PT Fumigasi Prima',1250000,1250000,1),C('LOLO depot','Depot Belawan Prima',950000,950000),C('Dokumen & PEB','PPJK Mitra Pabean',1750000,1750000)],
+  history:[H('23 Okt, 11.40','Finance (Sari)','Status diubah ke Siap Tagih'),H('22 Okt, 09.15','Manajemen (Hendra)','Variance Trucking disetujui'),H('15 Okt, 20.02','Operasional (Rina)','Status diubah ke Berangkat')]},
+ {no:'JOB-2610-0014',cust:'PT Karet Kampar Sejahtera',kind:'Ekspor FCL',pol:'Dumai',pod:'Shanghai',commodity:'Karet remah SIR 20',units:'3 × 20GP',status:6,revenue:58700000,
+  booking:{line:SOL,vessel:'KM Riau Samudra',voyage:'044E',no:'SOL-DUM-26-1187',confirmed:true,closing:'2026-10-18',etd:'2026-10-20',eta:'2026-11-02'},
+  containers:[{no:'SOLU2207713',size:'20GP',seal:'SOL-772018',truck:'BM 8421 TU',gate:true},{no:'SOLU2207729',size:'20GP',seal:'SOL-772019',truck:'BM 8655 TQ',gate:true},{no:'SOLU2207734',size:'20GP',seal:'SOL-772020',truck:'BM 8421 TU',gate:true}],
+  docs:[D('Packing list',1,'2026-10-16'),D('Commercial invoice',1,'2026-10-16'),D('Shipping instruction',1,'2026-10-16'),D('PEB',1,'2026-10-17'),D('Certificate of Origin',1,'2026-10-17')],
+  costs:[C('Ocean freight',SOL,31500000,31500000,1),C('THC muat','Terminal Dumai Raya',6600000,7150000,1,'menunggu','Tarif THC terminal naik per 15 Okt'),C('Trucking','PT Angkut Riau Andalan',8100000,null),C('LOLO depot','Depot Dumai Terpadu',1950000,1950000),C('Dokumen & PEB','PPJK Mitra Pabean',1800000,1800000)],
+  history:[H('21 Okt, 09.12','Finance (Sari)','Biaya aktual THC muat dicatat (Rp 7.150.000), masuk antrean approval'),H('20 Okt, 18.40','Operasional (Rina)','Status diubah ke Berangkat'),H('18 Okt, 15.02','Operasional (Rina)','Gate-in terminal dicatat untuk 3 kontainer'),H('17 Okt, 10.30','Dokumen (Dimas)','PEB ditandai lengkap')]},
+ {no:'JOB-2610-0016',cust:'PT Kertas Siak Lestari',kind:'Ekspor FCL',pol:'Dumai',pod:'Jeddah',commodity:'Kertas cetak',units:'2 × 40HC',status:4,revenue:79500000,
+  booking:{line:SOL,vessel:'KM Riau Samudra',voyage:'046E',no:'SOL-DUM-26-1203',confirmed:true,closing:'2026-10-29',etd:'2026-10-31',eta:'2026-11-24'},
+  containers:[{no:'SOLU4512207',size:'40HC',seal:'SOL-772140',truck:'BM 8102 TA',gate:true},{no:'SOLU4512213',size:'40HC',seal:'SOL-772141',truck:'BM 8655 TQ',gate:false}],
+  docs:[D('Packing list',1,'2026-10-27'),D('Commercial invoice',1,'2026-10-27'),D('Shipping instruction',1,'2026-10-27'),D('PEB',0,'2026-10-28'),D('Certificate of Origin',0,'2026-10-28')],
+  costs:[C('Ocean freight',SOL,52000000,null,1),C('THC muat','Terminal Dumai Raya',7800000,null,1),C('Trucking','PT Angkut Riau Andalan',6400000,null),C('LOLO depot','Depot Dumai Terpadu',1900000,null),C('Dokumen & PEB','PPJK Mitra Pabean',2100000,null)],
+  history:[H('24 Okt, 14.18','Operasional (Rina)','Gate-in terminal dicatat untuk SOLU4512207'),H('23 Okt, 10.05','Operasional (Rina)','Status diubah ke Dokumen'),H('21 Okt, 08.50','Operasional (Rina)','Booking dikonfirmasi pelayaran')]},
+ {no:'JOB-2610-0017',cust:'PT Kopi Bukit Barisan',kind:'Ekspor FCL',pol:'Belawan',pod:'Busan',commodity:'Kopi robusta',units:'1 × 20GP',status:5,revenue:26900000,
+  booking:{line:SOL,vessel:'KM Bahari Utama',voyage:'120N',no:'SOL-BLW-26-4588',confirmed:true,closing:'2026-10-26',etd:'2026-10-28',eta:'2026-11-10'},
+  containers:[{no:'SOLU2104581',size:'20GP',seal:'SOL-771690',truck:'BK 8812 XL',gate:true}],
+  docs:[D('Packing list',1,'2026-10-24'),D('Commercial invoice',1,'2026-10-24'),D('Shipping instruction',1,'2026-10-24'),D('PEB',1,'2026-10-25'),D('Certificate of Origin',1,'2026-10-25')],
+  costs:[C('Ocean freight',SOL,14800000,null,1),C('THC muat','Terminal Belawan Jaya',2450000,2450000,1),C('Trucking','PT Angkut Sumut Raya',3200000,3200000),C('LOLO depot','Depot Belawan Prima',650000,650000),C('Dokumen & PEB','PPJK Mitra Pabean',1500000,null)],
+  history:[H('25 Okt, 08.32','Operasional (Rina)','Status diubah ke Siap Berangkat'),H('24 Okt, 16.47','Dokumen (Dimas)','PEB ditandai lengkap')]},
+ {no:'JOB-2610-0018',cust:'CV Mebel Kampar',kind:'Domestik',pol:'Dumai',pod:'Tanjung Priok',commodity:'Mebel kayu',units:'1 × 20GP',status:3,revenue:16400000,
+  booking:{line:SOL,vessel:'KM Nusa Pertiwi',voyage:'31S',no:'SOL-DUM-26-1210',confirmed:true,closing:'2026-10-30',etd:'2026-11-01',eta:'2026-11-05'},
+  containers:[{no:'SOLU2209058',size:'20GP',seal:'',truck:'BM 9120 KL',gate:false}],
+  docs:[D('Packing list',1,'2026-10-29'),D('Surat jalan',1,'2026-10-29'),D('Shipping instruction',0,'2026-10-29')],
+  costs:[C('Freight domestik',SOL,9200000,null,1),C('THC muat','Terminal Dumai Raya',1350000,null,1),C('Trucking','PT Angkut Riau Andalan',2300000,null),C('LOLO depot','Depot Dumai Terpadu',600000,null),C('Dokumen','PPJK Mitra Pabean',500000,null)],
+  history:[H('24 Okt, 13.10','Operasional (Rina)','Kontainer SOLU2209058 diambil dari depot'),H('23 Okt, 09.44','Operasional (Rina)','Status diubah ke Trucking & Depot')]},
+ {no:'JOB-2610-0019',cust:'PT Baja Ringan Sumatera',kind:'Domestik',pol:'Tanjung Priok',pod:'Dumai',commodity:'Baja ringan',units:'2 × 20GP',status:2,revenue:30500000,
+  booking:{line:SOL,vessel:'KM Nusa Pertiwi',voyage:'32N',no:'',confirmed:false,closing:'2026-11-04',etd:'2026-11-06',eta:'2026-11-10'},
+  containers:[{no:'',size:'20GP',seal:'',truck:'',gate:false},{no:'',size:'20GP',seal:'',truck:'',gate:false}],
+  docs:[D('Packing list',0,'2026-11-03'),D('Surat jalan',0,'2026-11-03'),D('Shipping instruction',0,'2026-11-03')],
+  costs:[C('Freight domestik',SOL,17600000,null,1),C('THC muat','Terminal Priok Utama',2700000,null,1),C('Trucking','PT Angkut Priok Lancar',3800000,null),C('LOLO depot','Depot Priok Sentosa',1200000,null),C('Dokumen','PPJK Mitra Pabean',800000,null)],
+  history:[H('24 Okt, 10.02','Operasional (Rina)','Permintaan booking dikirim ke pelayaran'),H('22 Okt, 15.30','Manajemen (Hendra)','Quotation disetujui pelanggan, status diubah ke Order')]},
+ {no:'JOB-2610-0020',cust:'PT Karet Kampar Sejahtera',kind:'Ekspor FCL',pol:'Dumai',pod:'Shanghai',commodity:'Karet remah SIR 20',units:'4 × 20GP',status:0,revenue:77200000,
+  booking:{line:SOL,vessel:'',voyage:'',no:'',confirmed:false,closing:'',etd:'2026-11-17',eta:''},
+  containers:[],docs:[],
+  costs:[C('Ocean freight',SOL,42000000,null,1),C('THC muat','Terminal Dumai Raya',8800000,null,1),C('Trucking','PT Angkut Riau Andalan',10800000,null),C('LOLO depot','Depot Dumai Terpadu',2600000,null),C('Dokumen & PEB','PPJK Mitra Pabean',1900000,null)],
+  history:[H('25 Okt, 09.05','Manajemen (Hendra)','Quotation dibuat dan dikirim ke pelanggan')]}
+];
+
+const INVOICES=[
+ {vendor:'PT Angkut Riau Andalan',no:'ARA/INV/X/2026/0457',date:'21 Oktober 2026',ref:'Ref. booking SOL-DUM-26-1187, Kampar ke Dumai',
+  lines:[['Angkutan kontainer 20GP Kampar ke Dumai, SOLU2207713',2850000],['Angkutan kontainer 20GP Kampar ke Dumai, SOLU2207729',2850000],['Angkutan kontainer 20GP Kampar ke Dumai, SOLU2207734',2850000],['Biaya tunggu muat 1 hari',1200000]],
+  match:{job:'JOB-2610-0014',type:'Trucking',why:'Nomor booking dan 3 nomor kontainer cocok'},conf:[99,98,97,99,96],status:'baru'},
+ {vendor:SOL,no:'SOL/FRT/2026/10/3391',date:'24 Oktober 2026',ref:'Booking SOL-BLW-26-4588, KM Bahari Utama 120N',
+  lines:[['Ocean freight Belawan ke Busan, 1 × 20GP',13900000],['Bunker adjustment factor',900000]],
+  match:{job:'JOB-2610-0017',type:'Ocean freight',why:'Nomor booking dan voyage cocok'},conf:[99,99,98,99,98],status:'baru'},
+ {vendor:'Depot Dumai Terpadu',no:'DDT-2610-118',date:'24 Oktober 2026',ref:'Kontainer SOLU2209058',
+  lines:[['Lift on/lift off 20GP SOLU2209058',540000],['Administrasi depot',75000]],
+  match:{job:'JOB-2610-0018',type:'LOLO depot',why:'Nomor kontainer cocok'},conf:[98,97,99,98,95],status:'baru'}
+];
+
+const state={role:'Manajemen',view:'dashboard',job:null,tab:'ringkasan',filter:'aktif',q:'',inv:0,reading:false,summary:null};
+const R=()=>ROLES[state.role];
+const job=no=>JOBS.find(j=>j.no===no);
+const invTotal=i=>i.lines.reduce((a,l)=>a+l[1],0);
+const costOf=j=>j.costs.reduce((a,c)=>a+(c.actual??c.planned),0);
+const marginOf=j=>j.revenue-costOf(j);
+const overTol=c=>c.actual!=null&&c.actual>c.planned*(1+TOL);
+
+function departBlockers(j){
+  const b=[];
+  if(!j.booking.confirmed)b.push('Booking belum dikonfirmasi pelayaran');
+  if(!j.containers.length)b.push('Kontainer belum dialokasikan');
+  j.containers.forEach(c=>{
+    if(!c.no){b.push('Nomor kontainer belum dialokasikan');return;}
+    if(!c.seal)b.push('Seal belum diisi: '+c.no);
+    if(!c.gate)b.push('Belum gate-in terminal: '+c.no);
+  });
+  const miss=j.docs.filter(d=>d.status!=='lengkap').map(d=>d.name);
+  if(miss.length)b.push('Dokumen belum lengkap: '+miss.join(', '));
+  return [...new Set(b)];
+}
+function billBlockers(j){
+  const b=[];
+  if(j.status<6)b.push('Kapal belum berangkat');
+  j.costs.forEach(c=>{
+    if(c.actual==null)b.push('Belum ada invoice vendor: '+c.type);
+    else if(c.approval==='menunggu')b.push('Variance menunggu approval: '+c.type);
+    else if(c.approval==='ditolak')b.push('Variance ditolak, perlu koreksi: '+c.type);
+  });
+  return b;
+}
+function pending(){const out=[];JOBS.forEach(j=>j.costs.forEach(c=>{if(c.approval==='menunggu')out.push({j,c});}));return out;}
+function statusPill(s){
+  const cls=s===0?'p-grey':s<=4?'p-proc':s===5?'p-sig':s===6?'p-info':s===7?'p-ok':'p-grey';
+  return `<span class="pill ${cls}">${STATUSES[s]}</span>`;
+}
+function log(j,text){j.history.unshift(H(nowStr(),state.role+' ('+USER[state.role]+')',text));}
+
+let toastT;
+function toast(msg,kind){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='show'+(kind==='bad'?' bad':'');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.className='',4200);
+}
+
+/* ---------- views ---------- */
+function vDashboard(){
+  const active=JOBS.filter(j=>j.status>=1&&j.status<=7);
+  const pend=pending();
+  const est=active.reduce((a,j)=>{a.r+=j.revenue;a.m+=marginOf(j);return a;},{r:0,m:0});
+  const oct=JOBS.filter(j=>j.status>=1&&j.booking.etd&&j.booking.etd.startsWith('2026-10'));
+  const octPct=oct.reduce((a,j)=>a+marginOf(j),0)/oct.reduce((a,j)=>a+j.revenue,0)*100;
+  const unread=INVOICES.filter(i=>i.status!=='disimpan').length;
+
+  const todo=[];
+  JOBS.filter(j=>j.status>=1&&j.status<=5).forEach(j=>{
+    j.docs.filter(d=>d.status!=='lengkap').forEach(d=>todo.push({d:d.deadline,html:`${esc(d.name)} untuk <button class="linkbtn" data-act="open" data-no="${j.no}">${j.no}</button> belum lengkap`}));
+    const b=departBlockers(j).filter(x=>!x.startsWith('Dokumen'));
+    if(j.booking.closing&&daysLeft(j.booking.closing)<=7&&b.length)todo.push({d:j.booking.closing,html:`Closing <button class="linkbtn" data-act="open" data-no="${j.no}">${j.no}</button>: ${esc(b[0].toLowerCase())}${b.length>1?` dan ${b.length-1} hal lain`:''}`});
+  });
+  todo.sort((a,b)=>a.d.localeCompare(b.d));
+  const todoHtml=todo.map(t=>{const dl=daysLeft(t.d);return `<li><span class="when ${dl<=3?'hot':''}">${fd(t.d)}</span><span>${t.html}<br><span class="muted small">${dl<0?'Lewat '+(-dl)+' hari':dl===0?'Hari ini':dl+' hari lagi'}</span></span></li>`;}).join('');
+  const extra=[];
+  if(pend.length)extra.push(`<li><span class="when">Approval</span><span>${pend.length} variance biaya menunggu keputusan. <a href="#approval">Buka approval</a></span></li>`);
+  if(unread)extra.push(`<li><span class="when">Invoice</span><span>${unread} invoice vendor belum dibaca dan dicatat. <a href="#invoice">Baca invoice</a></span></li>`);
+
+  const byVendor={};
+  JOBS.forEach(j=>j.costs.forEach(c=>{if(c.actual!=null)byVendor[c.vendor]=(byVendor[c.vendor]||0)+c.actual;}));
+  const vend=Object.entries(byVendor).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const vmax=vend.length?vend[0][1]:1;
+
+  return `
+  <div class="stack">
+    <section class="panel kpis" aria-label="Angka utama">
+      <div class="kpi"><span class="n">${active.length}</span><span class="l">Job aktif</span></div>
+      <div class="kpi"><span class="n">${JOBS.filter(j=>j.status===5).length}</span><span class="l">Siap berangkat</span></div>
+      <div class="kpi"><span class="n">${JOBS.filter(j=>j.status===7).length}</span><span class="l">Siap tagih</span></div>
+      <div class="kpi"><span class="n">${pend.length}</span><span class="l">Variance menunggu approval</span></div>
+      <div class="kpi"><span class="n">${(est.m/est.r*100).toFixed(1).replace('.',',')}%</span><span class="l">Estimasi margin job aktif (${rp(est.m)})</span></div>
+    </section>
+    <div class="grid2">
+      <section class="panel pad">
+        <h2>Perlu tindakan</h2>
+        <ul class="todo">${extra.join('')}${todoHtml||'<li><span class="muted">Tidak ada yang mendesak.</span></li>'}</ul>
+      </section>
+      <section class="panel pad ai">
+        <div class="spread"><h2>Ringkasan variance</h2><button class="btn primary sm" data-act="summary">${state.summary?'Perbarui ringkasan':'Buat ringkasan dengan AI'}</button></div>
+        <div class="ai-text">${state.summary?state.summary.map(p=>`<p>${p}</p>`).join(''):'<p class="muted">AI merangkum selisih biaya rencana dan aktual dari semua job, lalu menunjukkan pos biaya yang perlu ditinjau.</p>'}</div>
+        ${state.summary?'<p class="ai-note">Di aplikasi sebenarnya ringkasan dibuat oleh AI dari data job. Di prototype ini ringkasan disusun dari data contoh.</p>':''}
+      </section>
+    </div>
+    <div class="grid2">
+      <section class="panel pad">
+        <div class="spread"><h2>Tren margin</h2><span class="muted small">Persentase margin per bulan keberangkatan</span></div>
+        ${lineChart(['Mei','Jun','Jul','Agu','Sep','Okt'],[14.2,15.1,13.4,12.8,13.9,+octPct.toFixed(1)])}
+      </section>
+      <section class="panel pad">
+        <div class="spread"><h2>Biaya vendor tercatat</h2><span class="muted small">Dari invoice yang sudah masuk</span></div>
+        <div class="bars" style="margin-top:14px">${vend.map(([v,n])=>`<div class="bar"><div class="t"><span>${esc(v)}</span><b>${rp(n)}</b></div><div class="track"><div class="fill" style="width:${(n/vmax*100).toFixed(1)}%"></div></div></div>`).join('')}</div>
+      </section>
+    </div>
+  </div>`;
+}
+
+function lineChart(labels,vals){
+  const W=520,H=200,pl=40,pr=18,pt=24,pb=28;
+  const min=Math.floor(Math.min(...vals)-1),max=Math.ceil(Math.max(...vals)+1);
+  const x=i=>pl+i*(W-pl-pr)/(vals.length-1);
+  const y=v=>pt+(max-v)/(max-min)*(H-pt-pb);
+  const ticks=[min,(min+max)/2,max];
+  let g=ticks.map(t=>`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl-8}" y="${y(t)+4}" text-anchor="end">${(+t.toFixed(1)).toString().replace('.',',')}%</text>`).join('');
+  const d=vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  const pts=vals.map((v,i)=>`<circle class="pt ${i===vals.length-1?'last':''}" cx="${x(i)}" cy="${y(v)}" r="4.5"/><text class="val" x="${x(i)}" y="${y(v)-11}" text-anchor="middle">${v.toFixed(1).replace('.',',')}</text><text x="${x(i)}" y="${H-8}" text-anchor="middle">${labels[i]}${i===vals.length-1?' (berjalan)':''}</text>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren margin enam bulan, terakhir ${vals[vals.length-1]} persen">${g}<path class="ln" d="${d}"/>${pts}</svg>`;
+}
+
+function makeSummary(){
+  let p=0,a=0;const vs=[];const withAct=new Set();
+  JOBS.forEach(j=>j.costs.forEach(c=>{if(c.actual!=null){withAct.add(j.no);p+=c.planned;a+=c.actual;const d=c.actual-c.planned;if(d>0)vs.push({j,c,d,pct:d/c.planned*100});}}));
+  const over=vs.filter(v=>v.pct>TOL*100).sort((x,y)=>y.d-x.d);
+  const byType={};over.forEach(v=>byType[v.c.type]=(byType[v.c.type]||0)+1);
+  const repeat=Object.keys(byType).filter(t=>byType[t]>=2);
+  const pend=over.filter(v=>v.c.approval==='menunggu');
+  const out=[];
+  out.push(`Dari ${withAct.size} job yang sudah punya biaya aktual, total biaya aktual ${rp(a)}, atau ${pc((a-p)/p*100)} dibanding rencana ${rp(p)}.`);
+  if(over.length){const t=over[0];out.push(`${over.length} pos biaya melewati toleransi 5%. Selisih terbesar ada di ${esc(t.c.type)} pada ${t.j.no} (${esc(t.c.vendor)}): ${pc(t.pct)} atau ${rp(t.d)}${t.c.note?`, dengan catatan “${esc(t.c.note)}”`:''}.`);}
+  else out.push('Belum ada biaya yang melewati toleransi 5%.');
+  if(repeat.length)out.push(`${repeat.join(' dan ')} melewati toleransi di lebih dari satu job. Tarif rencana untuk pos ini sebaiknya ditinjau sebelum quotation berikutnya dibuat.`);
+  out.push(pend.length?`${pend.length} variance masih menunggu approval (${pend.map(v=>esc(v.c.type)+' di '+v.j.no).join(', ')}). Job tersebut belum bisa masuk Siap Tagih sebelum diputuskan.`:'Tidak ada variance yang menunggu approval.');
+  return out;
+}
+
+const FILTERS=[['aktif','Aktif'],['semua','Semua'],['berangkat','Siap berangkat'],['tagih','Siap tagih'],['tutup','Ditutup']];
+function filteredJobs(){
+  const q=state.q.trim().toLowerCase();
+  return JOBS.filter(j=>{
+    const f=state.filter;
+    if(f==='aktif'&&j.status>7)return false;
+    if(f==='berangkat'&&j.status!==5)return false;
+    if(f==='tagih'&&j.status!==7)return false;
+    if(f==='tutup'&&j.status!==8)return false;
+    if(q&&!(j.no.toLowerCase().includes(q)||j.cust.toLowerCase().includes(q)||j.containers.some(c=>c.no.toLowerCase().includes(q))))return false;
+    return true;
+  });
+}
+function jobRows(){
+  const showM=R().costs;
+  const rows=filteredJobs().map(j=>{const m=marginOf(j);return `<tr class="click" data-act="open" data-no="${j.no}" tabindex="0">
+    <td><span class="mono" style="font-weight:600">${j.no}</span></td>
+    <td>${esc(j.cust)}<br><span class="muted small">${j.kind}, ${esc(j.commodity)}</span></td>
+    <td>${esc(j.pol)} → ${esc(j.pod)}</td>
+    <td>${j.units}</td>
+    <td>${fd(j.booking.etd)}</td>
+    <td>${statusPill(j.status)}</td>
+    ${showM?`<td class="r">${rp(m)}<br><span class="muted small">${(m/j.revenue*100).toFixed(1).replace('.',',')}%</span></td>`:''}
+  </tr>`;}).join('');
+  return rows||`<tr><td colspan="7" class="muted">Tidak ada job yang cocok. Coba ubah filter atau kata kunci.</td></tr>`;
+}
+function vJobs(){
+  if(state.job)return vJobDetail(job(state.job));
+  return `<div class="stack">
+    <div class="spread">
+      <div class="chips" role="group" aria-label="Filter status">${FILTERS.map(([k,l])=>`<button class="chip ${state.filter===k?'on':''}" data-act="filter" data-f="${k}">${l}</button>`).join('')}</div>
+      <input type="text" id="q" placeholder="Cari nomor job, pelanggan, atau kontainer" value="${esc(state.q)}" style="min-width:min(320px,100%)" aria-label="Cari job">
+    </div>
+    <section class="panel tw"><table class="tbl"><thead><tr><th>Nomor job</th><th>Pelanggan</th><th>Rute</th><th>Kontainer</th><th>ETD</th><th>Status</th>${R().costs?'<th class="r">Estimasi margin</th>':''}</tr></thead><tbody id="jobsBody">${jobRows()}</tbody></table></section>
+  </div>`;
+}
+
+function vJobDetail(j){
+  const r=R();
+  if(state.tab==='biaya'&&!r.costs)state.tab='ringkasan';
+  const tabs=[['ringkasan','Ringkasan'],['booking','Booking & kapal'],['kontainer','Kontainer & trucking'],['dokumen','Dokumen']];
+  if(r.costs)tabs.push(['biaya','Biaya']);
+  tabs.push(['riwayat','Riwayat perubahan']);
+  const next=j.status<8?STATUSES[j.status+1]:null;
+  const route=STATUSES.map((s,i)=>`<div class="stop ${i<j.status?'done':i===j.status?'cur':''}"><i></i>${s}</div>`).join('');
+  let body='';
+  if(state.tab==='ringkasan')body=tRingkasan(j);
+  if(state.tab==='booking')body=tBooking(j);
+  if(state.tab==='kontainer')body=tKontainer(j);
+  if(state.tab==='dokumen')body=tDokumen(j);
+  if(state.tab==='biaya')body=tBiaya(j);
+  if(state.tab==='riwayat')body=`<section class="panel pad"><ul class="history">${j.history.map(h=>`<li><span class="muted small">${h.t}</span><span>${esc(h.text)}<br><span class="muted small">${esc(h.who)}</span></span></li>`).join('')}</ul></section>`;
+  return `
+  <button class="btn sm back" data-act="back">Kembali ke daftar job</button>
+  <section class="panel pad">
+    <div class="job-top">
+      <div>
+        <div class="plate">${j.no}</div>
+        <p class="meta"><strong>${esc(j.cust)}</strong>, ${j.kind}, ${esc(j.commodity)}, ${j.units}<br>${esc(j.pol)} → ${esc(j.pod)}</p>
+      </div>
+      <div class="row">${statusPill(j.status)}${next?`<button class="btn primary" data-act="advance">Naikkan ke ${next}</button>`:''}</div>
+    </div>
+    <div class="route" aria-label="Alur status job">${route}</div>
+  </section>
+  <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab ${state.tab===k?'on':''}" role="tab" aria-selected="${state.tab===k}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div>
+  ${body}`;
+}
+function checkList(blockers,okText){
+  if(!blockers.length)return `<ul class="checks"><li><span class="mk y">✓</span><span>${okText}</span></li></ul>`;
+  return `<ul class="checks">${blockers.map(b=>`<li><span class="mk n">✕</span><span>${esc(b)}</span></li>`).join('')}</ul>`;
+}
+function tRingkasan(j){
+  const b=j.booking;
+  const dep=departBlockers(j),bill=billBlockers(j);
+  return `<div class="grid2">
+    <section class="panel pad">
+      <h2>Data utama</h2>
+      <dl class="facts" style="margin-top:14px">
+        <div><dt>Pelanggan</dt><dd>${esc(j.cust)}</dd></div>
+        <div><dt>Jenis</dt><dd>${j.kind}</dd></div>
+        <div><dt>Kontainer</dt><dd>${j.units}</dd></div>
+        <div><dt>Pelayaran</dt><dd>${esc(b.line)}</dd></div>
+        <div><dt>Kapal</dt><dd>${b.vessel?esc(b.vessel+' '+b.voyage):'–'}</dd></div>
+        <div><dt>Closing</dt><dd>${fd(b.closing)}</dd></div>
+        <div><dt>ETD</dt><dd>${fd(b.etd)}</dd></div>
+        <div><dt>ETA</dt><dd>${fd(b.eta)}</dd></div>
+        <div><dt>Nomor booking</dt><dd class="mono">${b.no||'–'}</dd></div>
+      </dl>
+    </section>
+    <section class="panel pad">
+      <h2>Syarat siap berangkat</h2>
+      ${j.status===0?'<p class="muted small" style="margin-top:8px">Dicek setelah quotation menjadi order.</p>':checkList(dep,'Booking, kontainer, seal, gate-in, dan dokumen sudah lengkap')}
+      <h2 style="margin-top:20px">Syarat siap tagih</h2>
+      ${j.status<6?'<p class="muted small" style="margin-top:8px">Dicek setelah kapal berangkat.</p>':checkList(bill,'Semua biaya aktual tercatat dan variance sudah diputuskan')}
+    </section>
+  </div>`;
+}
+function tBooking(j){
+  const b=j.booking;
+  return `<section class="panel pad">
+    <div class="spread"><h2>Booking & jadwal kapal</h2>${b.confirmed?'<span class="pill p-ok">Dikonfirmasi pelayaran</span>':'<span class="pill p-sig">Menunggu konfirmasi</span>'}</div>
+    <dl class="facts" style="margin-top:14px">
+      <div><dt>Pelayaran</dt><dd>${esc(b.line)}</dd></div>
+      <div><dt>Nomor booking</dt><dd class="mono">${b.no||'–'}</dd></div>
+      <div><dt>Kapal & voyage</dt><dd>${b.vessel?esc(b.vessel+' '+b.voyage):'–'}</dd></div>
+      <div><dt>Pelabuhan muat</dt><dd>${esc(j.pol)}</dd></div>
+      <div><dt>Pelabuhan tujuan</dt><dd>${esc(j.pod)}</dd></div>
+      <div><dt>Closing kontainer</dt><dd>${fd(b.closing)}${b.closing&&j.status<6?` <span class="muted small">(${daysLeft(b.closing)} hari lagi)</span>`:''}</dd></div>
+      <div><dt>ETD</dt><dd>${fd(b.etd)}</dd></div>
+      <div><dt>ETA</dt><dd>${fd(b.eta)}</dd></div>
+    </dl>
+  </section>`;
+}
+function tKontainer(j){
+  const can=R().ops;
+  if(!j.containers.length)return `<section class="panel pad"><p class="muted">Kontainer dialokasikan setelah booking dikonfirmasi.</p></section>`;
+  const rows=j.containers.map((c,i)=>`<tr>
+    <td class="mono">${c.no||'<span class="muted">Belum dialokasikan</span>'}</td>
+    <td>${c.size}</td>
+    <td>${c.seal?`<span class="mono">${esc(c.seal)}</span>`:(can&&c.no?`<div class="inline-form"><input type="text" id="seal-${i}" placeholder="Nomor seal" aria-label="Nomor seal ${c.no}"><button class="btn sm" data-act="seal" data-i="${i}">Simpan</button></div>`:'<span class="neg">Belum diisi</span>')}</td>
+    <td>${c.truck?esc(c.truck):'–'}</td>
+    <td>${c.gate?'<span class="pill p-ok">Sudah gate-in</span>':(can&&c.seal?`<button class="btn sm" data-act="gate" data-i="${i}">Catat gate-in</button>`:'<span class="pill p-grey">Belum</span>')}</td>
+  </tr>`).join('');
+  return `<section class="panel tw"><table class="tbl"><thead><tr><th>Nomor kontainer</th><th>Ukuran</th><th>Seal</th><th>Truk</th><th>Gate-in terminal</th></tr></thead><tbody>${rows}</tbody></table></section>
+  ${can?'':'<p class="note" style="margin-top:12px">Peran Anda hanya bisa melihat. Seal dan gate-in diisi oleh Operasional.</p>'}`;
+}
+function tDokumen(j){
+  const can=R().docs;
+  if(!j.docs.length)return `<section class="panel pad"><p class="muted">Checklist dokumen dibuat otomatis saat quotation menjadi order.</p></section>`;
+  const done=j.docs.filter(d=>d.status==='lengkap').length;
+  const rows=j.docs.map((d,i)=>{const dl=daysLeft(d.deadline);const ok=d.status==='lengkap';return `<tr>
+    <td>${esc(d.name)}</td>
+    <td>${ok?'<span class="pill p-ok">Lengkap</span>':'<span class="pill p-bad">Belum</span>'}</td>
+    <td>${fd(d.deadline)}${!ok?` <span class="${dl<=3?'neg':'muted'} small">(${dl<0?'lewat '+(-dl)+' hari':dl===0?'hari ini':dl+' hari lagi'})</span>`:''}</td>
+    <td class="r">${!ok&&can?`<button class="btn sm" data-act="doc" data-i="${i}">Tandai lengkap</button>`:''}</td>
+  </tr>`;}).join('');
+  return `<section class="panel pad" style="margin-bottom:14px">
+      <div class="spread"><h2>Kelengkapan dokumen</h2><b>${done} dari ${j.docs.length} lengkap</b></div>
+      <div class="progress"><span style="width:${done/j.docs.length*100}%"></span></div>
+    </section>
+    <section class="panel tw"><table class="tbl"><thead><tr><th>Dokumen</th><th>Status</th><th>Batas waktu</th><th></th></tr></thead><tbody>${rows}</tbody></table></section>
+    ${can?'':'<p class="note" style="margin-top:12px">Peran Anda hanya bisa melihat. Status dokumen diubah oleh tim Dokumen.</p>'}`;
+}
+function tBiaya(j){
+  let tp=0,ta=0,rb=0;
+  const rows=j.costs.map(c=>{
+    tp+=c.planned;ta+=c.actual??c.planned;if(c.rebill)rb+=c.actual??c.planned;
+    let v='<span class="muted">–</span>',ap='<span class="muted small">Belum ada invoice</span>';
+    if(c.actual!=null){const d=c.actual-c.planned,p=d/c.planned*100;v=`<span class="${p>TOL*100?'neg':d<0?'pos':''}">${d===0?'0':(d>0?'+':'')+fmt.format(d)}<br><span class="small">${pc(p)}</span></span>`;
+      ap=c.approval==='menunggu'?'<span class="pill p-sig">Menunggu approval</span>':c.approval==='disetujui'?'<span class="pill p-ok">Disetujui</span>':c.approval==='ditolak'?'<span class="pill p-bad">Ditolak</span>':'<span class="pill p-grey">Dalam toleransi</span>';}
+    return `<tr><td>${esc(c.type)}${c.rebill?' <span class="pill p-info">Ditagih ulang</span>':''}${c.note?`<br><span class="muted small">${esc(c.note)}</span>`:''}</td><td>${esc(c.vendor)}</td><td class="r">${rp(c.planned)}</td><td class="r">${rp(c.actual)}</td><td class="r">${v}</td><td>${ap}</td></tr>`;
+  }).join('');
+  const m=j.revenue-ta;
+  return `<section class="panel tw"><table class="tbl"><thead><tr><th>Pos biaya</th><th>Vendor</th><th class="r">Rencana</th><th class="r">Aktual</th><th class="r">Selisih</th><th>Status</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="2">Total</td><td class="r">${rp(tp)}</td><td class="r">${rp(j.costs.reduce((a,c)=>a+(c.actual||0),0))}</td><td></td><td></td></tr></tfoot></table></section>
+    <div class="sumbox">
+      <div><span>Nilai jual ke pelanggan</span><b>${rp(j.revenue)}</b></div>
+      <div><span>Biaya (aktual, sisanya rencana)</span><b>${rp(ta)}</b></div>
+      <div><span>Estimasi margin</span><b class="${m<0?'neg':''}">${rp(m)} (${(m/j.revenue*100).toFixed(1).replace('.',',')}%)</b></div>
+      <div><span>Biaya ditagih ulang ke pelanggan</span><b>${rp(rb)}</b></div>
+    </div>
+    <p class="note" style="margin-top:14px">Toleransi variance 5%. Biaya aktual di atas toleransi otomatis masuk antrean approval Manajemen, dan job belum bisa Siap Tagih sampai diputuskan.</p>`;
+}
+
+function vBoard(){
+  const cols=[
+    {t:'Persiapan berangkat',f:j=>j.status>=1&&j.status<=4,b:departBlockers,ok:'Syarat lengkap, bisa dinaikkan ke Siap Berangkat'},
+    {t:'Siap berangkat',f:j=>j.status===5,b:departBlockers,ok:'Siap dimuat sesuai jadwal kapal'},
+    {t:'Berangkat, menunggu biaya',f:j=>j.status===6,b:billBlockers,ok:'Syarat lengkap, bisa dinaikkan ke Siap Tagih'},
+    {t:'Siap tagih',f:j=>j.status===7,b:billBlockers,ok:'Siap dibuatkan invoice di software akuntansi'}
+  ];
+  return `<div class="board">${cols.map(c=>{const js=JOBS.filter(c.f);return `<section class="col"><div class="col-h"><b>${c.t}</b><span class="pill p-grey">${js.length}</span></div>
+    ${js.map(j=>{const bl=c.b(j);return `<button class="card" data-act="open" data-no="${j.no}">
+      <div class="spread"><span class="plate sm">${j.no}</span><span class="small muted">ETD ${fd(j.booking.etd)}</span></div>
+      <div class="c-r"><b style="color:var(--ink)">${esc(j.cust)}</b><br>${esc(j.pol)} → ${esc(j.pod)}, ${j.units}</div>
+      <ul>${bl.length?bl.slice(0,3).map(x=>`<li class="b">✕ ${esc(x)}</li>`).join('')+(bl.length>3?`<li class="b">dan ${bl.length-3} lainnya</li>`:''):`<li class="g">✓ ${c.ok}</li>`}</ul>
+    </button>`;}).join('')||'<p class="empty">Belum ada job di kolom ini.</p>'}
+  </section>`;}).join('')}</div>`;
+}
+
+function vInvoice(){
+  const inv=INVOICES[state.inv];
+  const tot=invTotal(inv);
+  const j=job(inv.match.job);const c=j.costs.find(x=>x.type===inv.match.type);
+  const list=INVOICES.map((v,i)=>`<button class="${i===state.inv?'on':''}" data-act="inv" data-i="${i}"><div class="v">${esc(v.vendor)}</div><div class="small muted mono">${v.no}</div><div style="margin-top:6px">${v.status==='disimpan'?'<span class="pill p-ok">Tercatat</span>':v.status==='dibaca'?'<span class="pill p-sig">Perlu konfirmasi</span>':'<span class="pill p-grey">Belum dibaca</span>'}</div></button>`).join('');
+  const paper=`<div class="paper ${state.reading?'scanning':''}">
+    <div class="ph"><div><b>${esc(inv.vendor)}</b><br><span style="font-weight:400;letter-spacing:0">Dumai, Riau</span></div><span>INVOICE</span></div>
+    <div>No. ${inv.no}<br>Tanggal ${inv.date}<br>${esc(inv.ref)}</div>
+    <table>${inv.lines.map(l=>`<tr><td>${esc(l[0])}</td><td class="r">${fmt.format(l[1])}</td></tr>`).join('')}</table>
+    <div class="pt">Total Rp ${fmt.format(tot)}</div>
+  </div>`;
+  let res='';
+  if(inv.status==='baru'){
+    res=state.reading?`<h2>Membaca invoice…</h2><p class="muted" style="margin-top:8px">AI mengenali vendor, nomor invoice, rincian biaya, lalu mencari job yang cocok.</p>`
+      :`<h2>Hasil bacaan AI</h2><p class="muted" style="margin-top:8px">Invoice ini belum dibaca. Di aplikasi sebenarnya, file PDF atau foto invoice diunggah lalu dibaca oleh AI.</p><button class="btn primary" style="margin-top:14px" data-act="read">Baca dengan AI</button>`;
+  }else if(inv.status==='dibaca'){
+    const v=tot-c.planned,p=v/c.planned*100,over=p>TOL*100;
+    res=`<h2>Hasil bacaan AI</h2>
+    <dl class="fields">
+      <dt>Vendor</dt><dd>${esc(inv.vendor)}</dd><span class="conf">${inv.conf[0]}%</span>
+      <dt>Nomor</dt><dd class="mono">${inv.no}</dd><span class="conf">${inv.conf[1]}%</span>
+      <dt>Tanggal</dt><dd>${inv.date}</dd><span class="conf">${inv.conf[2]}%</span>
+      <dt>Total</dt><dd>${rp(tot)}</dd><span class="conf">${inv.conf[3]}%</span>
+    </dl>
+    <div class="match">
+      <div class="spread"><b>Dicocokkan ke <span class="mono">${j.no}</span>, pos ${esc(c.type)}</b><span class="conf">${inv.conf[4]}%</span></div>
+      <p class="small muted" style="margin-top:4px">${esc(inv.match.why)}. ${esc(j.cust)}, ${esc(j.pol)} → ${esc(j.pod)}.</p>
+      <p style="margin-top:10px">Rencana ${rp(c.planned)}, invoice ${rp(tot)}, selisih <b class="${over?'neg':''}">${pc(p)}</b></p>
+      <div class="verdict ${over?'warn':'ok'}">${over?'Melebihi toleransi 5%. Setelah disimpan, biaya ini masuk antrean approval Manajemen.':'Dalam toleransi. Biaya langsung tercatat tanpa approval.'}</div>
+    </div>
+    <label class="lbl" for="invTotal">Total yang dicatat (bisa dikoreksi sebelum disimpan)</label>
+    <input type="text" id="invTotal" inputmode="numeric" value="${fmt.format(tot)}" style="width:100%">
+    <div class="row" style="margin-top:14px"><button class="btn primary" data-act="saveinv">Simpan sebagai biaya aktual</button><button class="btn" data-act="open" data-no="${j.no}">Lihat job</button></div>`;
+  }else{
+    res=`<h2>Sudah tercatat</h2><p style="margin-top:8px">Biaya aktual ${esc(c.type)} untuk <span class="mono">${j.no}</span> tercatat ${rp(c.actual)}.${c.approval==='menunggu'?' Selisihnya menunggu approval Manajemen.':''}</p><div class="row" style="margin-top:14px"><button class="btn" data-act="open" data-no="${j.no}">Lihat job</button>${c.approval==='menunggu'?'<a class="btn" href="#approval">Buka approval</a>':''}</div>`;
+  }
+  return `<div class="inv"><div class="inbox" aria-label="Invoice masuk">${list}</div>${paper}<section class="panel pad">${res}</section></div>`;
+}
+
+function vApproval(){
+  const r=R();
+  const pend=pending();
+  const done=[];JOBS.forEach(j=>j.costs.forEach(c=>{if(c.approval==='disetujui'||c.approval==='ditolak')done.push({j,c});}));
+  const row=(x,act)=>{const d=x.c.actual-x.c.planned;return `<tr>
+    <td><button class="linkbtn mono" data-act="open" data-no="${x.j.no}">${x.j.no}</button><br><span class="muted small">${esc(x.j.cust)}</span></td>
+    <td>${esc(x.c.type)}<br><span class="muted small">${esc(x.c.vendor)}</span></td>
+    <td class="r">${rp(x.c.planned)}</td><td class="r">${rp(x.c.actual)}</td>
+    <td class="r"><span class="neg">+${fmt.format(d)}</span><br><span class="small neg">${pc(d/x.c.planned*100)}</span></td>
+    <td>${x.c.note?esc(x.c.note):'<span class="muted">Tanpa catatan</span>'}</td>
+    <td class="r">${act?`<div class="row" style="justify-content:flex-end"><button class="btn sm primary" data-act="approve" data-no="${x.j.no}" data-type="${esc(x.c.type)}" ${r.approve?'':'disabled'}>Setujui</button><button class="btn sm danger" data-act="reject" data-no="${x.j.no}" data-type="${esc(x.c.type)}" ${r.approve?'':'disabled'}>Tolak</button></div>`:(x.c.approval==='disetujui'?'<span class="pill p-ok">Disetujui</span>':'<span class="pill p-bad">Ditolak</span>')}</td>
+  </tr>`;};
+  const head='<thead><tr><th>Job</th><th>Pos biaya</th><th class="r">Rencana</th><th class="r">Aktual</th><th class="r">Selisih</th><th>Catatan</th><th></th></tr></thead>';
+  return `<div class="stack">
+    ${r.approve?'':'<p class="note">Anda melihat sebagai '+state.role+'. Hanya Manajemen yang bisa menyetujui atau menolak variance.</p>'}
+    <section class="panel"><div class="pad" style="padding-bottom:4px"><h2>Menunggu keputusan</h2></div><div class="tw"><table class="tbl">${head}<tbody>${pend.map(x=>row(x,true)).join('')||'<tr><td colspan="7" class="muted">Tidak ada variance yang menunggu. Biaya baru di atas toleransi akan muncul di sini.</td></tr>'}</tbody></table></div></section>
+    <section class="panel"><div class="pad" style="padding-bottom:4px"><h2>Sudah diputuskan</h2></div><div class="tw"><table class="tbl">${head}<tbody>${done.map(x=>row(x,false)).join('')||'<tr><td colspan="7" class="muted">Belum ada.</td></tr>'}</tbody></table></div></section>
+  </div>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const r=R();
+  const pendN=pending().length,invN=INVOICES.filter(i=>i.status!=='disimpan').length;
+  document.getElementById('nav').innerHTML=r.nav.map(k=>{
+    const n=k==='approval'?pendN:k==='invoice'?invN:0;
+    return `<a href="#${k}" class="${state.view===k?'on':''}" ${state.view===k?'aria-current="page"':''}><span>${NAV[k]}</span>${n?`<span class="count">${n}</span>`:''}</a>`;
+  }).join('');
+  const [h,sub]=HEADS[state.view];
+  const isDetail=state.view==='jobs'&&state.job;
+  let html=isDetail?'':`<div class="head"><div><h1>${h}</h1><p>${sub}</p></div><span class="badge-proto">Prototype, data contoh</span></div>`;
+  html+=({dashboard:vDashboard,jobs:vJobs,board:vBoard,invoice:vInvoice,approval:vApproval})[state.view]();
+  document.getElementById('main').innerHTML=html;
+  document.title=(isDetail?state.job:h)+' | SatuJob prototype';
+}
+function go(view){
+  const allowed=R().nav;
+  state.view=allowed.includes(view)?view:allowed[0];
+  render();
+}
+function syncHash(){
+  const h=location.hash.slice(1);
+  if(h&&NAV[h]){if(h!=='jobs')state.job=null;go(h);}else go(state.view);
+}
+window.addEventListener('hashchange',syncHash);
+
+function openJob(no){
+  state.job=no;state.tab='ringkasan';
+  if(location.hash!=='#jobs'){state.view='jobs';location.hash='jobs';}
+  render();window.scrollTo(0,0);
+}
+
+document.getElementById('roleSel').addEventListener('change',e=>{
+  state.role=e.target.value;
+  if(!R().nav.includes(state.view)){state.job=null;location.hash=R().nav[0];}
+  render();
+  toast('Sekarang melihat sebagai '+state.role+' ('+USER[state.role]+'). Menu dan tombol menyesuaikan hak akses.');
+});
+
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){state.q=e.target.value;document.getElementById('jobsBody').innerHTML=jobRows();}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.matches('tr[data-act="open"]'))openJob(e.target.dataset.no);
+});
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]');if(!t||t.disabled)return;
+  const a=t.dataset.act;
+  if(a==='open'){openJob(t.dataset.no);return;}
+  if(a==='back'){state.job=null;render();return;}
+  if(a==='filter'){state.filter=t.dataset.f;render();return;}
+  if(a==='tab'){state.tab=t.dataset.t;render();return;}
+  if(a==='summary'){state.summary=makeSummary();render();return;}
+  if(a==='advance'){advance(job(state.job));return;}
+  if(a==='seal'){
+    const j=job(state.job),i=+t.dataset.i,inp=document.getElementById('seal-'+i),v=inp.value.trim();
+    if(!v){toast('Isi nomor seal terlebih dahulu.','bad');inp.focus();return;}
+    j.containers[i].seal=v;log(j,'Seal '+v+' dicatat untuk '+j.containers[i].no);render();toast('Seal tersimpan untuk '+j.containers[i].no+'.');return;
+  }
+  if(a==='gate'){
+    const j=job(state.job),c=j.containers[+t.dataset.i];c.gate=true;log(j,'Gate-in terminal dicatat untuk '+c.no);render();toast('Gate-in dicatat untuk '+c.no+'.');return;
+  }
+  if(a==='doc'){
+    const j=job(state.job),d=j.docs[+t.dataset.i];d.status='lengkap';log(j,d.name+' ditandai lengkap');render();toast(d.name+' ditandai lengkap.');return;
+  }
+  if(a==='inv'){state.inv=+t.dataset.i;state.reading=false;render();return;}
+  if(a==='read'){
+    state.reading=true;render();const idx=state.inv;
+    setTimeout(()=>{INVOICES[idx].status='dibaca';state.reading=false;if(state.view==='invoice')render();},1600);return;
+  }
+  if(a==='saveinv'){
+    const inv=INVOICES[state.inv],j=job(inv.match.job),c=j.costs.find(x=>x.type===inv.match.type);
+    const val=parseInt(document.getElementById('invTotal').value.replace(/\D/g,''),10);
+    if(!val){toast('Total harus berupa angka lebih dari nol.','bad');return;}
+    c.actual=val;c.approval=val>c.planned*(1+TOL)?'menunggu':null;
+    if(c.approval&&!c.note)c.note=inv.lines.length>1?'Invoice: '+inv.lines[inv.lines.length-1][0]:'';
+    inv.status='disimpan';
+    log(j,'Biaya aktual '+c.type+' dicatat dari invoice '+inv.no+' ('+rp(val)+')'+(c.approval?', masuk antrean approval':''));
+    render();toast(c.approval?'Biaya tercatat. Selisih melebihi toleransi, jadi masuk antrean approval.':'Biaya tercatat dalam toleransi.');return;
+  }
+  if(a==='approve'||a==='reject'){
+    const j=job(t.dataset.no),c=j.costs.find(x=>x.type===t.dataset.type);
+    c.approval=a==='approve'?'disetujui':'ditolak';
+    log(j,'Variance '+c.type+(a==='approve'?' disetujui':' ditolak'));
+    render();toast('Variance '+c.type+' di '+j.no+(a==='approve'?' disetujui.':' ditolak. Finance perlu mengoreksi biaya dengan vendor.'));return;
+  }
+});
+
+function advance(j){
+  const next=j.status+1;if(next>8)return;
+  const fin=next>=7,r=R();
+  if(fin&&!r.fin){toast('Hanya Finance atau Manajemen yang bisa menaikkan status ke '+STATUSES[next]+'.','bad');return;}
+  if(!fin&&!r.ops){toast('Status operasional hanya bisa diubah oleh Operasional atau Manajemen.','bad');return;}
+  if(next===3&&!j.booking.confirmed){toast('Belum bisa lanjut: booking belum dikonfirmasi pelayaran.','bad');return;}
+  if(next===5){const b=departBlockers(j);if(b.length){toast('Belum bisa Siap Berangkat. '+b[0]+(b.length>1?' (dan '+(b.length-1)+' lainnya).':'.'),'bad');state.tab='ringkasan';render();return;}}
+  if(next===7){const b=billBlockers(j);if(b.length){toast('Belum bisa Siap Tagih. '+b[0]+(b.length>1?' (dan '+(b.length-1)+' lainnya).':'.'),'bad');state.tab='ringkasan';render();return;}}
+  j.status=next;log(j,'Status diubah ke '+STATUSES[next]);render();toast(j.no+' sekarang '+STATUSES[next]+'.');
+}
+
+syncHash();
+</script>
+</body>
+</html>
