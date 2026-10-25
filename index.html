@@ -238,7 +238,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   .kpi:nth-child(n+4){border-top:1px solid var(--line)}
 }
 @media (max-width:860px){
-  .app{grid-template-columns:1fr}
+  .app{grid-template-columns:minmax(0,1fr)}
   .side{position:static;height:auto;padding:14px 16px;gap:12px;border-right:0;border-bottom:1px solid var(--line)}
   .role{flex-direction:row;align-items:center;padding:0}
   .role select{flex:1}
@@ -253,8 +253,27 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   .kpi{border-left:0!important;border-top:1px solid var(--line)}
   .kpi:nth-child(-n+2){border-top:0}
   .kpi:nth-child(even){border-left:1px solid var(--line)!important}
+  .kpi:last-child:nth-child(odd){grid-column:1/-1}
   .plate{font-size:22px}
   h1{font-size:21px}
+}
+@media (max-width:600px){
+  .chart text{font-size:20px}
+  .tbl .mono{white-space:nowrap}
+  /* tabel jadi kartu bertumpuk */
+  .tbl.cards thead{display:none}
+  .tbl.cards,.tbl.cards tbody,.tbl.cards tfoot,.tbl.cards tr,.tbl.cards td{display:block}
+  .tbl.cards tr{padding:12px 16px;border-bottom:1px solid var(--line)}
+  .tbl.cards tbody tr:last-child{border-bottom:0}
+  .tbl.cards tfoot tr{border-top:1px solid var(--line);border-bottom:0}
+  .tbl.cards td{border:0;padding:3px 0}
+  .tbl.cards td[data-l]{text-align:right;overflow:hidden}
+  .tbl.cards td[data-l]::before{content:attr(data-l);float:left;margin-right:12px;color:var(--muted);font-size:13px;font-weight:500;text-align:left}
+  .tbl.cards td:empty{display:none}
+  .tbl.cards td:first-child{padding-bottom:6px}
+  .tbl.cards td.act{padding-top:10px}
+  .tbl.cards td.act .row{justify-content:stretch!important}
+  .tbl.cards td.act .btn{flex:1;justify-content:center;padding:9px 14px}
 }
 </style>
 </head>
@@ -469,7 +488,7 @@ function vDashboard(){
     </div>
     <div class="grid2">
       <section class="panel pad">
-        <div class="spread"><h2>Tren margin</h2><span class="muted small">Persentase margin per bulan keberangkatan</span></div>
+        <div class="spread"><h2>Tren margin</h2><span class="muted small">Persentase margin per bulan keberangkatan, Okt masih berjalan</span></div>
         ${lineChart(['Mei','Jun','Jul','Agu','Sep','Okt'],[14.2,15.1,13.4,12.8,13.9,+octPct.toFixed(1)])}
       </section>
       <section class="panel pad">
@@ -481,14 +500,14 @@ function vDashboard(){
 }
 
 function lineChart(labels,vals){
-  const W=520,H=200,pl=40,pr=18,pt=24,pb=28;
+  const W=520,H=200,pl=52,pr=28,pt=32,pb=28;
   const min=Math.floor(Math.min(...vals)-1),max=Math.ceil(Math.max(...vals)+1);
   const x=i=>pl+i*(W-pl-pr)/(vals.length-1);
   const y=v=>pt+(max-v)/(max-min)*(H-pt-pb);
   const ticks=[min,(min+max)/2,max];
   let g=ticks.map(t=>`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl-8}" y="${y(t)+4}" text-anchor="end">${(+t.toFixed(1)).toString().replace('.',',')}%</text>`).join('');
   const d=vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
-  const pts=vals.map((v,i)=>`<circle class="pt ${i===vals.length-1?'last':''}" cx="${x(i)}" cy="${y(v)}" r="4.5"/><text class="val" x="${x(i)}" y="${y(v)-11}" text-anchor="middle">${v.toFixed(1).replace('.',',')}</text><text x="${x(i)}" y="${H-8}" text-anchor="middle">${labels[i]}${i===vals.length-1?' (berjalan)':''}</text>`).join('');
+  const pts=vals.map((v,i)=>`<circle class="pt ${i===vals.length-1?'last':''}" cx="${x(i)}" cy="${y(v)}" r="4.5"/><text class="val" x="${x(i)}" y="${y(v)-11}" text-anchor="middle">${v.toFixed(1).replace('.',',')}</text><text x="${x(i)}" y="${H-8}" text-anchor="middle">${labels[i]}</text>`).join('');
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren margin enam bulan, terakhir ${vals[vals.length-1]} persen">${g}<path class="ln" d="${d}"/>${pts}</svg>`;
 }
 
@@ -658,11 +677,11 @@ function tBiaya(j){
     let v='<span class="muted">–</span>',ap='<span class="muted small">Belum ada invoice</span>';
     if(c.actual!=null){const d=c.actual-c.planned,p=d/c.planned*100;v=`<span class="${p>TOL*100?'neg':d<0?'pos':''}">${d===0?'0':(d>0?'+':'')+fmt.format(d)}<br><span class="small">${pc(p)}</span></span>`;
       ap=c.approval==='menunggu'?'<span class="pill p-sig">Menunggu approval</span>':c.approval==='disetujui'?'<span class="pill p-ok">Disetujui</span>':c.approval==='ditolak'?'<span class="pill p-bad">Ditolak</span>':'<span class="pill p-grey">Dalam toleransi</span>';}
-    return `<tr><td>${esc(c.type)}${c.rebill?' <span class="pill p-info">Ditagih ulang</span>':''}${c.note?`<br><span class="muted small">${esc(c.note)}</span>`:''}</td><td>${esc(c.vendor)}</td><td class="r">${rp(c.planned)}</td><td class="r">${rp(c.actual)}</td><td class="r">${v}</td><td>${ap}</td></tr>`;
+    return `<tr><td>${esc(c.type)}${c.rebill?' <span class="pill p-info">Ditagih ulang</span>':''}${c.note?`<br><span class="muted small">${esc(c.note)}</span>`:''}</td><td data-l="Vendor">${esc(c.vendor)}</td><td class="r" data-l="Rencana">${rp(c.planned)}</td><td class="r" data-l="Aktual">${rp(c.actual)}</td><td class="r" data-l="Selisih">${v}</td><td data-l="Status">${ap}</td></tr>`;
   }).join('');
   const m=j.revenue-ta;
-  return `<section class="panel tw"><table class="tbl"><thead><tr><th>Pos biaya</th><th>Vendor</th><th class="r">Rencana</th><th class="r">Aktual</th><th class="r">Selisih</th><th>Status</th></tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="2">Total</td><td class="r">${rp(tp)}</td><td class="r">${rp(j.costs.reduce((a,c)=>a+(c.actual||0),0))}</td><td></td><td></td></tr></tfoot></table></section>
+  return `<section class="panel tw"><table class="tbl cards"><thead><tr><th>Pos biaya</th><th>Vendor</th><th class="r">Rencana</th><th class="r">Aktual</th><th class="r">Selisih</th><th>Status</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="2">Total</td><td class="r" data-l="Rencana">${rp(tp)}</td><td class="r" data-l="Aktual">${rp(j.costs.reduce((a,c)=>a+(c.actual||0),0))}</td><td></td><td></td></tr></tfoot></table></section>
     <div class="sumbox">
       <div><span>Nilai jual ke pelanggan</span><b>${rp(j.revenue)}</b></div>
       <div><span>Biaya (aktual, sisanya rencana)</span><b>${rp(ta)}</b></div>
@@ -733,17 +752,17 @@ function vApproval(){
   const done=[];JOBS.forEach(j=>j.costs.forEach(c=>{if(c.approval==='disetujui'||c.approval==='ditolak')done.push({j,c});}));
   const row=(x,act)=>{const d=x.c.actual-x.c.planned;return `<tr>
     <td><button class="linkbtn mono" data-act="open" data-no="${x.j.no}">${x.j.no}</button><br><span class="muted small">${esc(x.j.cust)}</span></td>
-    <td>${esc(x.c.type)}<br><span class="muted small">${esc(x.c.vendor)}</span></td>
-    <td class="r">${rp(x.c.planned)}</td><td class="r">${rp(x.c.actual)}</td>
-    <td class="r"><span class="neg">+${fmt.format(d)}</span><br><span class="small neg">${pc(d/x.c.planned*100)}</span></td>
-    <td>${x.c.note?esc(x.c.note):'<span class="muted">Tanpa catatan</span>'}</td>
-    <td class="r">${act?`<div class="row" style="justify-content:flex-end"><button class="btn sm primary" data-act="approve" data-no="${x.j.no}" data-type="${esc(x.c.type)}" ${r.approve?'':'disabled'}>Setujui</button><button class="btn sm danger" data-act="reject" data-no="${x.j.no}" data-type="${esc(x.c.type)}" ${r.approve?'':'disabled'}>Tolak</button></div>`:(x.c.approval==='disetujui'?'<span class="pill p-ok">Disetujui</span>':'<span class="pill p-bad">Ditolak</span>')}</td>
+    <td data-l="Pos biaya">${esc(x.c.type)}<br><span class="muted small">${esc(x.c.vendor)}</span></td>
+    <td class="r" data-l="Rencana">${rp(x.c.planned)}</td><td class="r" data-l="Aktual">${rp(x.c.actual)}</td>
+    <td class="r" data-l="Selisih"><span class="neg">+${fmt.format(d)}</span><br><span class="small neg">${pc(d/x.c.planned*100)}</span></td>
+    <td data-l="Catatan">${x.c.note?esc(x.c.note):'<span class="muted">Tanpa catatan</span>'}</td>
+    <td class="r act">${act?`<div class="row" style="justify-content:flex-end"><button class="btn sm primary" data-act="approve" data-no="${x.j.no}" data-type="${esc(x.c.type)}" ${r.approve?'':'disabled'}>Setujui</button><button class="btn sm danger" data-act="reject" data-no="${x.j.no}" data-type="${esc(x.c.type)}" ${r.approve?'':'disabled'}>Tolak</button></div>`:(x.c.approval==='disetujui'?'<span class="pill p-ok">Disetujui</span>':'<span class="pill p-bad">Ditolak</span>')}</td>
   </tr>`;};
   const head='<thead><tr><th>Job</th><th>Pos biaya</th><th class="r">Rencana</th><th class="r">Aktual</th><th class="r">Selisih</th><th>Catatan</th><th></th></tr></thead>';
   return `<div class="stack">
     ${r.approve?'':'<p class="note">Anda melihat sebagai '+state.role+'. Hanya Manajemen yang bisa menyetujui atau menolak variance.</p>'}
-    <section class="panel"><div class="pad" style="padding-bottom:4px"><h2>Menunggu keputusan</h2></div><div class="tw"><table class="tbl">${head}<tbody>${pend.map(x=>row(x,true)).join('')||'<tr><td colspan="7" class="muted">Tidak ada variance yang menunggu. Biaya baru di atas toleransi akan muncul di sini.</td></tr>'}</tbody></table></div></section>
-    <section class="panel"><div class="pad" style="padding-bottom:4px"><h2>Sudah diputuskan</h2></div><div class="tw"><table class="tbl">${head}<tbody>${done.map(x=>row(x,false)).join('')||'<tr><td colspan="7" class="muted">Belum ada.</td></tr>'}</tbody></table></div></section>
+    <section class="panel"><div class="pad" style="padding-bottom:4px"><h2>Menunggu keputusan</h2></div><div class="tw"><table class="tbl cards">${head}<tbody>${pend.map(x=>row(x,true)).join('')||'<tr><td colspan="7" class="muted">Tidak ada variance yang menunggu. Biaya baru di atas toleransi akan muncul di sini.</td></tr>'}</tbody></table></div></section>
+    <section class="panel"><div class="pad" style="padding-bottom:4px"><h2>Sudah diputuskan</h2></div><div class="tw"><table class="tbl cards">${head}<tbody>${done.map(x=>row(x,false)).join('')||'<tr><td colspan="7" class="muted">Belum ada.</td></tr>'}</tbody></table></div></section>
   </div>`;
 }
 
@@ -761,6 +780,12 @@ function render(){
   html+=({dashboard:vDashboard,jobs:vJobs,board:vBoard,invoice:vInvoice,approval:vApproval})[state.view]();
   document.getElementById('main').innerHTML=html;
   document.title=(isDetail?state.job:h)+' | SatuJob prototype';
+  // di layar sempit, geser menu/alur/tab yang aktif ke dalam pandangan
+  document.querySelectorAll('.nav a.on,.route .stop.cur,.tabs .tab.on').forEach(el=>{
+    const p=el.parentElement;if(p.scrollWidth<=p.clientWidth)return;
+    const er=el.getBoundingClientRect(),pr=p.getBoundingClientRect();
+    p.scrollLeft+=er.left-pr.left-(p.clientWidth-er.width)/2;
+  });
 }
 function go(view){
   const allowed=R().nav;
